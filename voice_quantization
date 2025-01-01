@@ -1,0 +1,61 @@
+import numpy as np
+import wave
+import matplotlib.pyplot as plt
+from scipy.io import wavfile
+
+def quantize_signal(signal, num_levels):
+    """
+    Quantizes a signal into num_levels discrete levels.
+    
+    :param signal: Input signal (numpy array)
+    :param num_levels: Number of quantization levels
+    :return: Quantized signal
+    """
+    # Normalize signal between -1 and 1
+    max_val = np.max(np.abs(signal))
+    normalized_signal = signal / max_val
+    
+    # Uniform quantization
+    quantized_signal = np.round((normalized_signal + 1) * (num_levels - 1) / 2)
+    quantized_signal = 2 * quantized_signal / (num_levels - 1) - 1
+    
+    # Scale back to original range
+    return (quantized_signal * max_val).astype(signal.dtype)
+
+def save_wav(file_name, sample_rate, data):
+    """
+    Save quantized signal to a .wav file.
+    """
+    wavfile.write(file_name, sample_rate, data)
+
+def main():
+    # Load an audio file (16-bit PCM WAV)
+    input_file = 'input_voice.wav'
+    output_file = 'quantized_voice.wav'
+    
+    sample_rate, data = wavfile.read(input_file)
+    
+    if data.ndim > 1:  # If stereo, take only one channel
+        data = data[:, 0]
+    
+    # Perform quantization
+    num_bits = 4  # Number of bits for quantization
+    num_levels = 2 ** num_bits
+    quantized_data = quantize_signal(data, num_levels)
+    
+    # Save the quantized voice
+    save_wav(output_file, sample_rate, quantized_data)
+    
+    # Plot original vs quantized signal
+    time = np.linspace(0, len(data) / sample_rate, num=len(data))
+    plt.figure(figsize=(10, 6))
+    plt.plot(time, data, label='Original Signal', alpha=0.6)
+    plt.plot(time, quantized_data, label='Quantized Signal', alpha=0.6)
+    plt.xlabel("Time (s)")
+    plt.ylabel("Amplitude")
+    plt.legend()
+    plt.title("Original vs Quantized Signal")
+    plt.show()
+
+if __name__ == "__main__":
+    main()
